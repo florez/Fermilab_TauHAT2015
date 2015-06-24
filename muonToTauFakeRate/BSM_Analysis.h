@@ -127,11 +127,11 @@ public :
    vector<double>  *Jet_energy;
    vector<double>  *Jet_bDiscriminator;
    vector<double>  *Jet_mass;
-   vector<double>  *Jet_neutralHadEnergy;
-   vector<double>  *Jet_neutralEmEmEnergy;
-   vector<double>  *Jet_chargedHadronEnergy;
-   vector<double>  *Jet_chargedEmEnergy;
-   vector<double>  *Jet_muonEnergy;
+   vector<double>  *Jet_neutralHadEnergyFraction;
+   vector<double>  *Jet_neutralEmEmEnergyFraction;
+   vector<double>  *Jet_chargedHadronEnergyFraction;
+   vector<double>  *Jet_chargedEmEnergyFraction;
+   vector<double>  *Jet_muonEnergyFraction;
    vector<double>  *Jet_electronEnergy;
    vector<double>  *Jet_photonEnergy;
    vector<double>  *UncorrJet_pt;
@@ -222,11 +222,11 @@ public :
    TBranch        *b_Jet_energy;   //!
    TBranch        *b_Jet_bDiscriminator;   //!
    TBranch        *b_Jet_mass;   //!
-   TBranch        *b_Jet_neutralHadEnergy;   //!
-   TBranch        *b_Jet_neutralEmEmEnergy;   //!
-   TBranch        *b_Jet_chargedHadronEnergy;   //!
-   TBranch        *b_Jet_chargedEmEnergy;   //!
-   TBranch        *b_Jet_muonEnergy;   //!
+   TBranch        *b_Jet_neutralHadEnergyFraction;   //!
+   TBranch        *b_Jet_neutralEmEmEnergyFraction;   //!
+   TBranch        *b_Jet_chargedHadronEnergyFraction;   //!
+   TBranch        *b_Jet_chargedEmEnergyFraction;   //!
+   TBranch        *b_Jet_muonEnergyFraction;   //!
    TBranch        *b_Jet_electronEnergy;   //!
    TBranch        *b_Jet_photonEnergy;   //!
    TBranch        *b_UncorrJet_pt;   //!
