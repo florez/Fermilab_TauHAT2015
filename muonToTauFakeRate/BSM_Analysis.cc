@@ -107,7 +107,7 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
          {
             double DeltaR_matched = 99999.9;
 
-            // select Z -> mumu events
+            // select tag and probe candidates 
             double lead_muon_pt = Muon_pt->at(0);
             if ( (Muon_pt->size() == 2)){ 
               if ((!found_tag_muon) && (abs(Muon_eta->at(j)) < 2.4) && (Muon_pt->at(j) > 25.0) ){pass_tag_muon_kin = true;}
@@ -116,9 +116,7 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
                   charge_tag_muon = Muon_charge->at(j);
                   found_tag_muon = true;
               } else {
-                  // Now we loop over the taus in the event, if any, and find the 
-                  // closes tau ot the probe muon. This information might be useful to 
-                  // undertand what fraction of taus faking muons are near by the muon candidate.
+                  // Now we loop over the taus in the event, if any 
                   for (int t = 0; t < Tau_pt->size(); t++)
                     {
                      double delta_eta = Muon_eta->at(j) - Tau_eta->at(t);
@@ -207,13 +205,13 @@ void BSM_Analysis::createHistoMaps (int directories)
      {
        // Events histogram
        _hmap_events[i]             = new TH1F("Events",         "Events", 3, 0., 3.);
-       // Muon distributions
-       _hmap_diLepton_mass[i]      = new TH1F("diLepMass",      "m_{#mu, #mu}", 300., 0., 300.); 
-       _hmap_probe_tau_pT[i]       = new TH1F("muon_pT",        "#mu p_{T}",    300, 0., 300.);
-       _hmap_probe_tau_eta[i]      = new TH1F("muon_eta",       "#mu #eta",     50, -2.5, 2.5);
-       _hmap_diLepton_mass_fail[i] = new TH1F("diLepMass_fail", "m_{#mu, #mu}", 300., 0., 300.);
-       _hmap_probe_tau_pT_fail[i]  = new TH1F("muon_pT_fail",   "#mu p_{T}",    300, 0., 300.);
-       _hmap_probe_tau_eta_fail[i] = new TH1F("muon_eta_fail",  "#mu #eta",     50, -2.5, 2.5);    
+       // Tau distributions
+       _hmap_diLepton_mass[i]      = new TH1F("diLepMass",     "m_{#mu, #tau}", 300., 0., 300.); 
+       _hmap_probe_tau_pT[i]       = new TH1F("tau_pT",        "#tau p_{T}",    300, 0., 300.);
+       _hmap_probe_tau_eta[i]      = new TH1F("tau_eta",       "#tau #eta",     50, -2.5, 2.5);
+       _hmap_diLepton_mass_fail[i] = new TH1F("diLepMass_fail","m_{#mu, #tau}", 300., 0., 300.);
+       _hmap_probe_tau_pT_fail[i]  = new TH1F("tau_pT_fail",   "#tau p_{T}",    300, 0., 300.);
+       _hmap_probe_tau_eta_fail[i] = new TH1F("tau_eta_fail",  "#tau #eta",     50, -2.5, 2.5);    
      }
 }
 
