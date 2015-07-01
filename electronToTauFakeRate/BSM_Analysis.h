@@ -33,28 +33,19 @@ public :
 
    // create Histo maps
    void createHistoMaps (int);
-   void fillHistos_matching(int, int, bool);
    // Define maps for histograms
    std::map<unsigned int, TH1*> _hmap_events;
    // For muons
-   std::map<unsigned int, TH1*> _hmap_electron_pT;
-   std::map<unsigned int, TH1*> _hmap_electron_eta;
-   std::map<unsigned int, TH1*> _hmap_electron_phi;
-   std::map<unsigned int, TH1*> _hmap_diElectron_mass;
-   std::map<unsigned int, TH1*> _hmap_electron_pT_fail;
-   std::map<unsigned int, TH1*> _hmap_electron_eta_fail;
-   std::map<unsigned int, TH1*> _hmap_diElectron_mass_fail;
-   std::map<unsigned int, TH1*> _hmap_electron_phi_fail;
-   // For Taus
-   std::map<unsigned int, TH1*> _hmap_taus_probe_electron_w_matching_pT;
-   std::map<unsigned int, TH1*> _hmap_taus_probe_electron_w_matching_eta;
-   std::map<unsigned int, TH1*> _hmap_taus_probe_electron_w_matching_phi;
-   std::map<unsigned int, TH1*> _hmap_taus_probe_electron_w_matching_charge;
-   std::map<unsigned int, TH1*> _hmap_taus_probe_electron_w_matching_nprongs;
-   std::map<unsigned int, TH1*> _hmap_taus_probe_muon_wo_matching_pT;
-   std::map<unsigned int, TH1*> _hmap_taus_probe_muon_wo_matching_eta;
-   std::map<unsigned int, TH1*> _hmap_taus_probe_muon_wo_matching_phi;
-   // Define Branches
+   std::map<unsigned int, TH1*> _hmap_probe_tau_pT;
+   std::map<unsigned int, TH1*> _hmap_probe_tau_eta;
+   std::map<unsigned int, TH1*> _hmap_probe_tau_phi;
+   std::map<unsigned int, TH1*> _hmap_diLepton_mass;
+   std::map<unsigned int, TH1*> _hmap_probe_tau_pT_fail;
+   std::map<unsigned int, TH1*> _hmap_probe_tau_eta_fail;
+   std::map<unsigned int, TH1*> _hmap_diLepton_mass_fail;
+   std::map<unsigned int, TH1*> _hmap_probe_tau_phi_fail;
+   
+// Define Branches
    void setBranchAddress(TTree* BOOM);
    vector<string>  *Trigger_names;
    vector<int>     *Trigger_decision;

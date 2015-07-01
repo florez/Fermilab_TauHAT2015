@@ -71,15 +71,15 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
     {
       BOOM->GetEntry(i);
 
-       //define globa event weight
+       //define global event weight
        double weight =1.;
        weight=PUweights->GetBinContent(PUweights->FindBin(trueInteractions));
        // TLorentz vector to calculate the di-jet invariant mass
        TLorentzVector TagElectron_TL_vec(0., 0., 0., 0.); 
-       TLorentzVector ProbeElectron_TL_vec(0., 0., 0., 0.);
+       TLorentzVector ProbeTau_TL_vec(0., 0., 0., 0.);
 
-       double charge_lead = 0.;
-       double charge_slead = 0.;
+       double charge_tag_electron = 0.;
+       double charge_tau = 0.;
        // This array is used to store the information 
        // of taus that pass or fail a given tau ID 
        // selection criterion.
@@ -87,10 +87,10 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 
        bool pass_trigger = true;
 
+
        // For Trigger
        for (int t = 0 ; t < Trigger_decision->size(); t++){
           string theTriggers = Trigger_names->at(t);
-          //cout <<theTriggers<<endl;
           string myTrigger   = "HLT_Ele23";
           std::size_t found = theTriggers.find(myTrigger);
           if (found!=std::string::npos){
@@ -98,24 +98,23 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
           }
        }       
 
-       int    matched_tau_index = 0;
-       // Loop over electrons:
+       int matched_tau_index = 0;
+       bool pass_tag_electron_kin = false;
+       bool found_tag_electron = false; 
+       // Loop over electron:
        for (int j = 0; j < patElectron_pt->size(); j++)
          {
             double DeltaR_matched = 99999.9;
 
-            // select Z -> mumu events
-            double lead_electron_pt = patElectron_pt->at(0);
-            if ( (patElectron_pt->size() == 2) && (abs(patElectron_eta->at(j)) < 2.4) && (patElectron_pt->at(j) > 10.0) ){
-              if ((patElectron_isPassTight->at(j) == 1) && (patElectron_isoChargedHadrons->at(j) < 5.0) && (pass_trigger)){
+            // select Tag and probe objects
+            if ( (patElectron_pt->size() == 2)){ 
+              if ((!found_tag_electron) && (abs(patElectron_eta->at(j)) < 2.4) && (patElectron_pt->at(j) > 25.0) ){pass_tag_electron_kin = true;}
+              if ((pass_tag_electron_kin) && (patElectron_isPassTight->at(j) == 1) && (patElectron_isoChargedHadrons->at(j) < 2.0) && (pass_trigger)){
                   TagElectron_TL_vec.SetPtEtaPhiE(patElectron_pt->at(j), patElectron_eta->at(j), patElectron_phi->at(j), patElectron_energy->at(j)); 
-                  charge_lead = patElectron_charge->at(j);
+                  charge_tag_electron = patElectron_charge->at(j);
+                  found_tag_electron = true;
               } else {
-                  ProbeElectron_TL_vec.SetPtEtaPhiE(patElectron_pt->at(j), patElectron_eta->at(j), patElectron_phi->at(j), patElectron_energy->at(j));
-                  charge_slead = patElectron_charge->at(j);
-                  // Now we loop over the taus in the event, if any, and find the 
-                  // closes tau ot the probe electron. This information might be useful to 
-                  // undertand what fraction of taus faking electrons are near by the electrons candidate.
+                  // Now we loop over the taus in the event, if any. 
                   for (int t = 0; t < Tau_pt->size(); t++)
                     {
                      double delta_eta = patElectron_eta->at(j) - Tau_eta->at(t);
@@ -138,41 +137,43 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
                          pass_tau_id[1] = 1;
                       }
                    }
+                   if(Tau_pt->size() > 0){
+                     ProbeTau_TL_vec.SetPtEtaPhiE(Tau_pt->at(matched_tau_index), Tau_eta->at(matched_tau_index), Tau_phi->at(matched_tau_index), Tau_energy->at(matched_tau_index));
+                     charge_tau = Tau_charge->at(matched_tau_index); 
+                   }
               }
                 
             }
          }
 
-        double charge_product = charge_lead*charge_slead;
-        bool passElectronPt = false;
+        double charge_product = charge_tag_electron*charge_tau;
+        bool pass_TagAndProbe_pT = false;
         _hmap_events[0]->Fill(0.0);
-        if ((ProbeElectron_TL_vec.Pt() > 25.) || (TagElectron_TL_vec.Pt() > 25.)){
-           passElectronPt = true;
+        if ((ProbeTau_TL_vec.Pt() > 20.) && (TagElectron_TL_vec.Pt() > 25.)){
+           pass_TagAndProbe_pT = true;
            _hmap_events[0]->Fill(1.0);
         }
-        if ((charge_product <= -1) && passElectronPt){
+        if ((charge_product <= -1) && (pass_TagAndProbe_pT)){
           _hmap_events[0]->Fill(2.0);
-          _hmap_diElectron_mass[0]->Fill((TagElectron_TL_vec + ProbeElectron_TL_vec).M());
-          _hmap_electron_pT[0]->Fill(ProbeElectron_TL_vec.Pt());
-          _hmap_electron_eta[0]->Fill(ProbeElectron_TL_vec.Eta());
-          _hmap_diElectron_mass_fail[0]->Fill((TagElectron_TL_vec + ProbeElectron_TL_vec).M());
-          _hmap_electron_pT_fail[0]->Fill(ProbeElectron_TL_vec.Pt());
-          _hmap_electron_eta_fail[0]->Fill(ProbeElectron_TL_vec.Eta());
-          if (Tau_pt->size() != 0) fillHistos_matching(0, matched_tau_index, true);
+          _hmap_diLepton_mass[0]->Fill((TagElectron_TL_vec + ProbeTau_TL_vec).M());
+          _hmap_probe_tau_pT[0]->Fill(ProbeTau_TL_vec.Pt());
+          _hmap_probe_tau_eta[0]->Fill(ProbeTau_TL_vec.Eta());
+          _hmap_diLepton_mass_fail[0]->Fill((TagElectron_TL_vec + ProbeTau_TL_vec).M());
+          _hmap_probe_tau_pT_fail[0]->Fill(ProbeTau_TL_vec.Pt());
+          _hmap_probe_tau_eta_fail[0]->Fill(ProbeTau_TL_vec.Eta());
         }
         for (int i = 1; i < nDir; i++){
           _hmap_events[i]->Fill(0.0);
-          if ((charge_product == -1) && (passElectronPt) && (pass_tau_id[i] == 1)){
+          if ((charge_product <= -1) && (pass_TagAndProbe_pT) && (pass_tau_id[i] == 1)){
             _hmap_events[i]->Fill(1.0);
-            _hmap_diElectron_mass[i]->Fill((TagElectron_TL_vec + ProbeElectron_TL_vec).M());
-            _hmap_electron_pT[i]->Fill(ProbeElectron_TL_vec.Pt());
-            _hmap_electron_eta[i]->Fill(ProbeElectron_TL_vec.Eta());
-            if (Tau_pt->size() != 0) fillHistos_matching(i, matched_tau_index, true);
-          } else if ((charge_product == -1) && (passElectronPt) && (pass_tau_id[i] == 0)) {
+            _hmap_diLepton_mass[i]->Fill((TagElectron_TL_vec + ProbeTau_TL_vec).M());
+            _hmap_probe_tau_pT[i]->Fill(ProbeTau_TL_vec.Pt());
+            _hmap_probe_tau_eta[i]->Fill(ProbeTau_TL_vec.Eta());
+          } else if ((charge_product <= -1) && (pass_TagAndProbe_pT) && (pass_tau_id[i] == 0)) {
             _hmap_events[i]->Fill(2.0);
-            _hmap_diElectron_mass_fail[i]->Fill((TagElectron_TL_vec + ProbeElectron_TL_vec).M());
-            _hmap_electron_pT_fail[i]->Fill(ProbeElectron_TL_vec.Pt());
-            _hmap_electron_eta_fail[i]->Fill(ProbeElectron_TL_vec.Eta());
+            _hmap_diLepton_mass_fail[i]->Fill((TagElectron_TL_vec + ProbeTau_TL_vec).M());
+            _hmap_probe_tau_pT_fail[i]->Fill(ProbeTau_TL_vec.Pt());
+            _hmap_probe_tau_eta_fail[i]->Fill(ProbeTau_TL_vec.Eta());
           }
         }
      }
@@ -181,14 +182,12 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
      {
        cdDir[d]->cd();
        _hmap_events[d]->Write();
-       _hmap_diElectron_mass[d]->Write();
-       _hmap_electron_pT[d]->Write();
-       _hmap_electron_eta[d]->Write();
-       _hmap_diElectron_mass_fail[d]->Write();
-       _hmap_electron_pT_fail[d]->Write();
-       _hmap_electron_eta_fail[d]->Write();
-       _hmap_taus_probe_electron_w_matching_pT[d]->Write();
-       _hmap_taus_probe_electron_w_matching_eta[d]->Write();
+       _hmap_diLepton_mass[d]->Write();
+       _hmap_probe_tau_pT[d]->Write();
+       _hmap_probe_tau_eta[d]->Write();
+       _hmap_diLepton_mass_fail[d]->Write();
+       _hmap_probe_tau_pT_fail[d]->Write();
+       _hmap_probe_tau_eta_fail[d]->Write();
      } 
    theFile->Close();
 }
@@ -198,32 +197,19 @@ BSM_Analysis::~BSM_Analysis()
   // do anything here that needs to be done at desctruction time
 }
 
-void BSM_Analysis::fillHistos_matching(int dir, int tau, bool match){
-
-if(match) {
-   _hmap_taus_probe_electron_w_matching_pT[dir]->Fill(Tau_pt->at(tau));
-   _hmap_taus_probe_electron_w_matching_eta[dir]->Fill(Tau_eta->at(tau));
-}
-
-}
-
-
 void BSM_Analysis::createHistoMaps (int directories)
 {
    for (int i = 0; i < directories; i++)
      {
        // Events histogram
-       _hmap_events[i]           = new TH1F("Events",          "Events", 3, 0., 3.);
-       // Electron distributions
-       _hmap_diElectron_mass[i]      = new TH1F("diElectronMass",         "m_{#mu, #mu}", 300., 0., 300.); 
-       _hmap_electron_pT[i]          = new TH1F("electron_pT",        "#mu p_{T}",    300, 0., 300.);
-       _hmap_electron_eta[i]         = new TH1F("electron_eta",       "#mu #eta",     50, -2.5, 2.5);
-       _hmap_diElectron_mass_fail[i] = new TH1F("diElectronMass_fail",    "m_{#mu, #mu}", 300., 0., 300.);
-       _hmap_electron_pT_fail[i]     = new TH1F("electron_pT_fail",   "#mu p_{T}",    300, 0., 300.);
-       _hmap_electron_eta_fail[i]    = new TH1F("electron_eta_fail",  "#mu #eta",     50, -2.5, 2.5);    
-       // tau distributions
-       _hmap_taus_probe_electron_w_matching_pT[i]      = new TH1F("taus_probe_electron_w_matching_pT",   "#tau p_{T}", 300, 0., 300.);
-       _hmap_taus_probe_electron_w_matching_eta[i]     = new TH1F("taus_probe_electron_w_matching_eta",  "#tau #eta",  50, -2.5, 2.5);
+       _hmap_events[i]             = new TH1F("Events",         "Events", 3, 0., 3.);
+       // electron distributions
+       _hmap_diLepton_mass[i]      = new TH1F("diLepMass",      "m_{e, #tau}",  300., 0., 300.); 
+       _hmap_probe_tau_pT[i]       = new TH1F("tau_pT",         "#tau p_{T}",   300, 0., 300.);
+       _hmap_probe_tau_eta[i]      = new TH1F("tau_eta",        "#tau #eta",    50, -2.5, 2.5);
+       _hmap_diLepton_mass_fail[i] = new TH1F("diLepMass_fail", "m_{e, #tau}",  300., 0., 300.);
+       _hmap_probe_tau_pT_fail[i]  = new TH1F("tau_pT_fail",    "#tau p_{T}",   300, 0., 300.);
+       _hmap_probe_tau_eta_fail[i] = new TH1F("tau_eta_fail",   "#tau #eta",    50, -2.5, 2.5);    
      }
 }
 
