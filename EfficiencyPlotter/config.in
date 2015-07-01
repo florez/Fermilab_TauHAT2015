@@ -1,0 +1,11 @@
+inputFile: Output.root
+process: DY+Jets
+dir_numerator: AfterTau_decayModeFinding
+dir_denominator: AfterMuonChargeProduct
+histoName: diMuonMass
+rebin: 20
+variableBinSize: 0
+Nbins: 25
+binSize: 300.0
+markerStyle: 22
+colorStyle: 2
