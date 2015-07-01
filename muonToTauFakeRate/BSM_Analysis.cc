@@ -76,10 +76,10 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
        weight=PUweights->GetBinContent(PUweights->FindBin(trueInteractions));
        // TLorentz vector to calculate the di-jet invariant mass
        TLorentzVector TagMuon_TL_vec(0., 0., 0., 0.); 
-       TLorentzVector ProbeTagMuon_TL_vec(0., 0., 0., 0.);
+       TLorentzVector ProbeTau_TL_vec(0., 0., 0., 0.);
 
-       double charge_lead = 0.;
-       double charge_slead = 0.;
+       double charge_tag_muon = 0.;
+       double charge_tau = 0.;
        // This array is used to store the information 
        // of taus that pass or fail a given tau ID 
        // selection criterion.
@@ -99,7 +99,9 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
           }
        }       
 
-       int    matched_tau_index = 0;
+       int matched_tau_index = 0;
+       bool pass_tag_muon_kin = false;
+       bool found_tag_muon = false; 
        // Loop over muons:
        for (int j = 0; j < Muon_pt->size(); j++)
          {
@@ -107,13 +109,13 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 
             // select Z -> mumu events
             double lead_muon_pt = Muon_pt->at(0);
-            if ( (Muon_pt->size() == 2) && (abs(Muon_eta->at(j)) < 2.4) && (Muon_pt->at(j) > 10.0) ){
-              if ((Muon_tight->at(j) == 1) && (Muon_isoSum->at(j) < 5.0) && (pass_trigger)){
+            if ( (Muon_pt->size() == 2)){ 
+              if ((!found_tag_muon) && (abs(Muon_eta->at(j)) < 2.4) && (Muon_pt->at(j) > 25.0) ){pass_tag_muon_kin = true;}
+              if ((pass_tag_muon_kin) && (Muon_tight->at(j) == 1) && (Muon_isoSum->at(j) < 2.0) && (pass_trigger)){
                   TagMuon_TL_vec.SetPtEtaPhiE(Muon_pt->at(j), Muon_eta->at(j), Muon_phi->at(j), Muon_energy->at(j)); 
-                  charge_lead = Muon_charge->at(j);
+                  charge_tag_muon = Muon_charge->at(j);
+                  found_tag_muon = true;
               } else {
-                  ProbeTagMuon_TL_vec.SetPtEtaPhiE(Muon_pt->at(j), Muon_eta->at(j), Muon_phi->at(j), Muon_energy->at(j));
-                  charge_slead = Muon_charge->at(j);
                   // Now we loop over the taus in the event, if any, and find the 
                   // closes tau ot the probe muon. This information might be useful to 
                   // undertand what fraction of taus faking muons are near by the muon candidate.
@@ -139,41 +141,43 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
                          pass_tau_id[1] = 1;
                       }
                    }
+                   if(Tau_pt->size() > 0){
+                     ProbeTau_TL_vec.SetPtEtaPhiE(Tau_pt->at(matched_tau_index), Tau_eta->at(matched_tau_index), Tau_phi->at(matched_tau_index), Tau_energy->at(matched_tau_index));
+                     charge_tau = Tau_charge->at(matched_tau_index); 
+                   }
               }
                 
             }
          }
 
-        double charge_product = charge_lead*charge_slead;
-        bool passMuonPt = false;
+        double charge_product = charge_tag_muon*charge_tau;
+        bool pass_TagAndProbe_pT = false;
         _hmap_events[0]->Fill(0.0);
-        if ((ProbeTagMuon_TL_vec.Pt() > 25.) || (TagMuon_TL_vec.Pt() > 25.)){
-           passMuonPt = true;
+        if ((ProbeTau_TL_vec.Pt() > 20.) && (TagMuon_TL_vec.Pt() > 25.)){
+           pass_TagAndProbe_pT = true;
            _hmap_events[0]->Fill(1.0);
         }
-        if ((charge_product <= -1) && passMuonPt){
+        if ((charge_product <= -1) && (pass_TagAndProbe_pT)){
           _hmap_events[0]->Fill(2.0);
-          _hmap_diMuon_mass[0]->Fill((TagMuon_TL_vec + ProbeTagMuon_TL_vec).M());
-          _hmap_muon_pT[0]->Fill(ProbeTagMuon_TL_vec.Pt());
-          _hmap_muon_eta[0]->Fill(ProbeTagMuon_TL_vec.Eta());
-          _hmap_diMuon_mass_fail[0]->Fill((TagMuon_TL_vec + ProbeTagMuon_TL_vec).M());
-          _hmap_muon_pT_fail[0]->Fill(ProbeTagMuon_TL_vec.Pt());
-          _hmap_muon_eta_fail[0]->Fill(ProbeTagMuon_TL_vec.Eta());
-          if (Tau_pt->size() != 0) fillHistos_matching(0, matched_tau_index, true);
+          _hmap_diLepton_mass[0]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
+          _hmap_probe_tau_pT[0]->Fill(ProbeTau_TL_vec.Pt());
+          _hmap_probe_tau_eta[0]->Fill(ProbeTau_TL_vec.Eta());
+          _hmap_diLepton_mass_fail[0]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
+          _hmap_probe_tau_pT_fail[0]->Fill(ProbeTau_TL_vec.Pt());
+          _hmap_probe_tau_eta_fail[0]->Fill(ProbeTau_TL_vec.Eta());
         }
         for (int i = 1; i < nDir; i++){
           _hmap_events[i]->Fill(0.0);
-          if ((charge_product == -1) && (passMuonPt) && (pass_tau_id[i] == 1)){
+          if ((charge_product <= -1) && (pass_TagAndProbe_pT) && (pass_tau_id[i] == 1)){
             _hmap_events[i]->Fill(1.0);
-            _hmap_diMuon_mass[i]->Fill((TagMuon_TL_vec + ProbeTagMuon_TL_vec).M());
-            _hmap_muon_pT[i]->Fill(ProbeTagMuon_TL_vec.Pt());
-            _hmap_muon_eta[i]->Fill(ProbeTagMuon_TL_vec.Eta());
-            if (Tau_pt->size() != 0) fillHistos_matching(i, matched_tau_index, true);
-          } else if ((charge_product == -1) && (passMuonPt) && (pass_tau_id[i] == 0)) {
+            _hmap_diLepton_mass[i]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
+            _hmap_probe_tau_pT[i]->Fill(ProbeTau_TL_vec.Pt());
+            _hmap_probe_tau_eta[i]->Fill(ProbeTau_TL_vec.Eta());
+          } else if ((charge_product <= -1) && (pass_TagAndProbe_pT) && (pass_tau_id[i] == 0)) {
             _hmap_events[i]->Fill(2.0);
-            _hmap_diMuon_mass_fail[i]->Fill((TagMuon_TL_vec + ProbeTagMuon_TL_vec).M());
-            _hmap_muon_pT_fail[i]->Fill(ProbeTagMuon_TL_vec.Pt());
-            _hmap_muon_eta_fail[i]->Fill(ProbeTagMuon_TL_vec.Eta());
+            _hmap_diLepton_mass_fail[i]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
+            _hmap_probe_tau_pT_fail[i]->Fill(ProbeTau_TL_vec.Pt());
+            _hmap_probe_tau_eta_fail[i]->Fill(ProbeTau_TL_vec.Eta());
           }
         }
      }
@@ -182,14 +186,12 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
      {
        cdDir[d]->cd();
        _hmap_events[d]->Write();
-       _hmap_diMuon_mass[d]->Write();
-       _hmap_muon_pT[d]->Write();
-       _hmap_muon_eta[d]->Write();
-       _hmap_diMuon_mass_fail[d]->Write();
-       _hmap_muon_pT_fail[d]->Write();
-       _hmap_muon_eta_fail[d]->Write();
-       _hmap_taus_probe_muon_w_matching_pT[d]->Write();
-       _hmap_taus_probe_muon_w_matching_eta[d]->Write();
+       _hmap_diLepton_mass[d]->Write();
+       _hmap_probe_tau_pT[d]->Write();
+       _hmap_probe_tau_eta[d]->Write();
+       _hmap_diLepton_mass_fail[d]->Write();
+       _hmap_probe_tau_pT_fail[d]->Write();
+       _hmap_probe_tau_eta_fail[d]->Write();
      } 
    theFile->Close();
 }
@@ -199,32 +201,19 @@ BSM_Analysis::~BSM_Analysis()
   // do anything here that needs to be done at desctruction time
 }
 
-void BSM_Analysis::fillHistos_matching(int dir, int tau, bool match){
-
-if(match) {
-   _hmap_taus_probe_muon_w_matching_pT[dir]->Fill(Tau_pt->at(tau));
-   _hmap_taus_probe_muon_w_matching_eta[dir]->Fill(Tau_eta->at(tau));
-}
-
-}
-
-
 void BSM_Analysis::createHistoMaps (int directories)
 {
    for (int i = 0; i < directories; i++)
      {
        // Events histogram
-       _hmap_events[i]           = new TH1F("Events",          "Events", 3, 0., 3.);
+       _hmap_events[i]             = new TH1F("Events",         "Events", 3, 0., 3.);
        // Muon distributions
-       _hmap_diMuon_mass[i]      = new TH1F("diMuonMass",      "m_{#mu, #mu}", 300., 0., 300.); 
-       _hmap_muon_pT[i]          = new TH1F("muon_pT",         "#mu p_{T}",    300, 0., 300.);
-       _hmap_muon_eta[i]         = new TH1F("muon_eta",        "#mu #eta",     50, -2.5, 2.5);
-       _hmap_diMuon_mass_fail[i] = new TH1F("diMuonMass_fail", "m_{#mu, #mu}", 300., 0., 300.);
-       _hmap_muon_pT_fail[i]     = new TH1F("muon_pT_fail",    "#mu p_{T}",    300, 0., 300.);
-       _hmap_muon_eta_fail[i]    = new TH1F("muon_eta_fail",   "#mu #eta",     50, -2.5, 2.5);    
-       // tau distributions
-       _hmap_taus_probe_muon_w_matching_pT[i]      = new TH1F("taus_probe_muon_w_matching_pT",   "#tau p_{T}", 300, 0., 300.);
-       _hmap_taus_probe_muon_w_matching_eta[i]     = new TH1F("taus_probe_muon_w_matching_eta",  "#tau #eta",  50, -2.5, 2.5);
+       _hmap_diLepton_mass[i]      = new TH1F("diLepMass",      "m_{#mu, #mu}", 300., 0., 300.); 
+       _hmap_probe_tau_pT[i]       = new TH1F("muon_pT",        "#mu p_{T}",    300, 0., 300.);
+       _hmap_probe_tau_eta[i]      = new TH1F("muon_eta",       "#mu #eta",     50, -2.5, 2.5);
+       _hmap_diLepton_mass_fail[i] = new TH1F("diLepMass_fail", "m_{#mu, #mu}", 300., 0., 300.);
+       _hmap_probe_tau_pT_fail[i]  = new TH1F("muon_pT_fail",   "#mu p_{T}",    300, 0., 300.);
+       _hmap_probe_tau_eta_fail[i] = new TH1F("muon_eta_fail",  "#mu #eta",     50, -2.5, 2.5);    
      }
 }
 
