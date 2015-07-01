@@ -7,5 +7,5 @@ rebin: 20
 variableBinSize: 0
 Nbins: 25
 binSize: 300.0
-markerStyle: 22
-colorStyle: 2
+markerStyle: 20
+colorStyle: 4

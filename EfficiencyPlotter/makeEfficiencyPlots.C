@@ -1,3 +1,8 @@
+#########################################################
+#                                                       #
+#  Author: Andres Florez, Unviersidad de los Andes, CO  #
+#                                                       #
+#########################################################
 // Load C++ libraries
 #include <iostream>
 #include <iomanip>
