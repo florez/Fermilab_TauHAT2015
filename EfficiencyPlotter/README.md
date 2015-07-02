@@ -1,6 +1,6 @@
 #########################################################
 #                                                       #
-#  Author: Andres Florez, Unviersidad de los Andes, CO  #
+#  Author: Andres Florez, Universidad de los Andes, CO  #
 #                                                       #
 #########################################################
 
