@@ -133,7 +133,7 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
       
       _hmap_events[0]->Fill(0.0);
       float diLepmass = (ProbeTau_TL_vec + TagMuon_TL_vec).M();
-      if (diLepmass > 30.){
+      if (diLepmass > 20.){
 	_hmap_events[0]->Fill(1.0);
 	_hmap_diLepton_mass[0]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
 	_hmap_probe_tau_pT[0]->Fill(ProbeTau_TL_vec.Pt());
@@ -144,12 +144,12 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
       }
       for (int i = 1; i < nDir; i++){
 	_hmap_events[i]->Fill(0.0);
-	if ((diLepmass > 30.) && (pass_tau_id[i] == 1)){
+	if ((diLepmass > 20.) && (pass_tau_id[i] == 1)){
 	  _hmap_events[i]->Fill(1.0);
 	  _hmap_diLepton_mass[i]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
 	  _hmap_probe_tau_pT[i]->Fill(ProbeTau_TL_vec.Pt());
 	  _hmap_probe_tau_eta[i]->Fill(ProbeTau_TL_vec.Eta());
-	} else if ((diLepmass > 30.) && (pass_tau_id[i] == 0)) {
+	} else if ((diLepmass > 20.) && (pass_tau_id[i] == 0)) {
 	  _hmap_events[i]->Fill(2.0);
 	  _hmap_diLepton_mass_fail[i]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
 	  _hmap_probe_tau_pT_fail[i]->Fill(ProbeTau_TL_vec.Pt());
