@@ -70,7 +70,6 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
   for (int i = 0; i < nentries; ++i)
     {
       BOOM->GetEntry(i);
-      
       //define global event weight
       double weight =1.;
       weight=PUweights->GetBinContent(PUweights->FindBin(trueInteractions));
@@ -87,12 +86,12 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
       bool pass_trigger = false;
       
       // For Trigger
-      for (int t = 0 ; t < Trigger_decision->size(); t++){
-	string theTriggers = Trigger_names->at(t);
+      for (int tr = 0 ; tr < Trigger_decision->size(); tr++){
+	string theTriggers = Trigger_names->at(tr);
 	string myTrigger   = "HLT_IsoMu24";
 	std::size_t found = theTriggers.find(myTrigger);
 	if (found!=std::string::npos){
-	  if (Trigger_decision->at(t) == 1){pass_trigger = true;}
+	  if (Trigger_decision->at(tr) == 1){pass_trigger = true;}
 	}
       }       
       
@@ -105,12 +104,8 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
       for (int j = 0; j < Muon_pt->size(); j++)
 	{
 	  // select tag and probe candidates 
-	  if ((abs(Muon_eta->at(j)) < 2.4) && (Muon_pt->at(j) > 25.0) && (Muon_pt->at(j) > muon_max_pt)){
-	    pass_tag_muon_kin = true;
-	    muon_max_pt = Muon_pt->at(j);
-	  }
-	  if ((pass_tag_muon_kin) && (Muon_tight->at(j) == 1) && (Muon_isoSum->at(j) < 2.0) && (pass_trigger)){
-	    TagMuon_TL_vec.SetPtEtaPhiE(Muon_pt->at(j), Muon_eta->at(j), Muon_phi->at(j), Muon_energy->at(j)); 
+	  if ((abs(Muon_eta->at(j)) < 2.4) && (Muon_pt->at(j) > 25.0) && (Muon_tight->at(j) == 1) && (Muon_isoSum->at(j) < 2.0) && (pass_trigger)){
+	    TagMuon_TL_vec.SetPtEtaPhiE(Muon_pt->at(j), Muon_eta->at(j), Muon_phi->at(j), Muon_energy->at(j));
 	    charge_tag_muon = Muon_charge->at(j);
             found_tag_muon = true;
 	  } 
@@ -118,9 +113,8 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 	  // Now we loop over the taus in the event, if any 
 	  for (int t = 0; t < Tau_pt->size(); t++)
 	    {
-	      double delta_eta = Muon_eta->at(j) - Tau_eta->at(t);
-	      double delta_phi = Muon_phi->at(j) - Tau_phi->at(t);
-	      double DeltaR_muon_tau = sqrt(pow(delta_eta, 2) + pow(delta_phi, 2));
+              ProbeTau_TL_vec.SetPtEtaPhiE(Tau_pt->at(t), Tau_eta->at(t), Tau_phi->at(t), Tau_energy->at(t));
+              double DeltaR_muon_tau = TagMuon_TL_vec.DeltaR(ProbeTau_TL_vec);
 	      double charge_product = (Muon_charge->at(j))*(Tau_charge->at(t));
 	      
 	      if ((DeltaR_muon_tau < 0.5) || (charge_product >=0)) {continue;}
@@ -129,15 +123,17 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 	      if( Tau_decayModeFinding->at(t) == 1){
 		pass_tau_id[1] = 1;
 	      }
- 	      ProbeTau_TL_vec.SetPtEtaPhiE(Tau_pt->at(t), Tau_eta->at(t), Tau_phi->at(t), Tau_energy->at(t));
               found_probe_tau = true;
               break;
 	    }
-           if (found_probe_tau){break;}
+           if (found_probe_tau){ 
+             break;
+            }
 	}
       
       _hmap_events[0]->Fill(0.0);
-      if ((ProbeTau_TL_vec.Pt() > 20.) && (TagMuon_TL_vec.Pt() > 25.)){
+      float diLepmass = (ProbeTau_TL_vec + TagMuon_TL_vec).M();
+      if (diLepmass > 30.){
 	_hmap_events[0]->Fill(1.0);
 	_hmap_diLepton_mass[0]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
 	_hmap_probe_tau_pT[0]->Fill(ProbeTau_TL_vec.Pt());
@@ -148,18 +144,20 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
       }
       for (int i = 1; i < nDir; i++){
 	_hmap_events[i]->Fill(0.0);
-	if ((ProbeTau_TL_vec.Pt() > 20.) && (TagMuon_TL_vec.Pt() > 25.) && (pass_tau_id[i] == 1)){
+	if ((diLepmass > 30.) && (pass_tau_id[i] == 1)){
 	  _hmap_events[i]->Fill(1.0);
 	  _hmap_diLepton_mass[i]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
 	  _hmap_probe_tau_pT[i]->Fill(ProbeTau_TL_vec.Pt());
 	  _hmap_probe_tau_eta[i]->Fill(ProbeTau_TL_vec.Eta());
-	} else if ((ProbeTau_TL_vec.Pt() > 20.) && (TagMuon_TL_vec.Pt() > 25.) && (pass_tau_id[i] == 0)) {
+	} else if ((diLepmass > 30.) && (pass_tau_id[i] == 0)) {
 	  _hmap_events[i]->Fill(2.0);
 	  _hmap_diLepton_mass_fail[i]->Fill((TagMuon_TL_vec + ProbeTau_TL_vec).M());
 	  _hmap_probe_tau_pT_fail[i]->Fill(ProbeTau_TL_vec.Pt());
 	  _hmap_probe_tau_eta_fail[i]->Fill(ProbeTau_TL_vec.Eta());
 	}
       }
+      ProbeTau_TL_vec.Clear();
+      TagMuon_TL_vec.Clear();
     }
   theFile->cd();
   for (int d = 0; d < nDir; d++)
