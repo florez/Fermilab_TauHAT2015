@@ -96,20 +96,14 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 	}
       }       
       
-      bool pass_tag_electron_kin = false;
-      double electron_max_pt = 0.0;
-      double tau_max_pt = 0.0;
       bool found_tag_electron = false;
       bool found_probe_tau = false;
       // Loop over electron:
       for (int j = 0; j < patElectron_pt->size(); j++)
 	{
 	  // select tag and probe candidates 
-	  if ((abs(patElectron_eta->at(j)) < 2.4) && (patElectron_pt->at(j) > 25.0) && (patElectron_pt->at(j) > electron_max_pt)){
-	    pass_tag_electron_kin = true;
-	    electron_max_pt = patElectron_pt->at(j);
-	  }
-	  if ((pass_tag_electron_kin) && (patElectron_isPassTight->at(j) == 1) && (patElectron_isoChargedHadrons->at(j) < 2.0) && (pass_trigger)){
+	  if ((abs(patElectron_eta->at(j)) < 2.4) && (patElectron_pt->at(j) > 25.0) && (patElectron_isPassTight->at(j) == 1) && 
+              (patElectron_isoChargedHadrons->at(j) < 2.0) && (pass_trigger)){
 	    TagElectron_TL_vec.SetPtEtaPhiE(patElectron_pt->at(j), patElectron_eta->at(j), patElectron_phi->at(j), patElectron_energy->at(j)); 
 	    charge_tag_electron = patElectron_charge->at(j);
             found_tag_electron = true;
@@ -118,9 +112,8 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 	  // Now we loop over the taus in the event, if any 
 	  for (int t = 0; t < Tau_pt->size(); t++)
 	    {
-	      double delta_eta = patElectron_eta->at(j) - Tau_eta->at(t);
-	      double delta_phi = patElectron_phi->at(j) - Tau_phi->at(t);
-	      double DeltaR_electron_tau = sqrt(pow(delta_eta, 2) + pow(delta_phi, 2));
+              ProbeTau_TL_vec.SetPtEtaPhiE(Tau_pt->at(t), Tau_eta->at(t), Tau_phi->at(t), Tau_energy->at(t));
+              double DeltaR_electron_tau = TagElectron_TL_vec.DeltaR(ProbeTau_TL_vec);
 	      double charge_product = (patElectron_charge->at(j))*(Tau_charge->at(t));
 	      
 	      if ((DeltaR_electron_tau < 0.5) || (charge_product >=0)) {continue;}
@@ -129,7 +122,6 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 	      if( Tau_decayModeFinding->at(t) == 1){
 		pass_tau_id[1] = 1;
 	      }
- 	      ProbeTau_TL_vec.SetPtEtaPhiE(Tau_pt->at(t), Tau_eta->at(t), Tau_phi->at(t), Tau_energy->at(t));
               found_probe_tau = true;
               break;
 	    }
@@ -137,7 +129,8 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
 	}
       
       _hmap_events[0]->Fill(0.0);
-      if ((ProbeTau_TL_vec.Pt() > 20.) && (TagElectron_TL_vec.Pt() > 25.)){
+      double mass_dilep = (ProbeTau_TL_vec + TagElectron_TL_vec).M();
+      if (mass_dilep > 20.0){
 	_hmap_events[0]->Fill(1.0);
 	_hmap_diLepton_mass[0]->Fill((TagElectron_TL_vec + ProbeTau_TL_vec).M());
 	_hmap_probe_tau_pT[0]->Fill(ProbeTau_TL_vec.Pt());
@@ -148,12 +141,12 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
       }
       for (int i = 1; i < nDir; i++){
 	_hmap_events[i]->Fill(0.0);
-	if ((ProbeTau_TL_vec.Pt() > 20.) && (TagElectron_TL_vec.Pt() > 25.) && (pass_tau_id[i] == 1)){
+	if ((mass_dilep > 20.0) && (pass_tau_id[i] == 1)){
 	  _hmap_events[i]->Fill(1.0);
 	  _hmap_diLepton_mass[i]->Fill((TagElectron_TL_vec + ProbeTau_TL_vec).M());
 	  _hmap_probe_tau_pT[i]->Fill(ProbeTau_TL_vec.Pt());
 	  _hmap_probe_tau_eta[i]->Fill(ProbeTau_TL_vec.Eta());
-	} else if ((ProbeTau_TL_vec.Pt() > 20.) && (TagElectron_TL_vec.Pt() > 25.) && (pass_tau_id[i] == 0)) {
+	} else if ((mass_dilep > 20.0) && (pass_tau_id[i] == 0)) {
 	  _hmap_events[i]->Fill(2.0);
 	  _hmap_diLepton_mass_fail[i]->Fill((TagElectron_TL_vec + ProbeTau_TL_vec).M());
 	  _hmap_probe_tau_pT_fail[i]->Fill(ProbeTau_TL_vec.Pt());
