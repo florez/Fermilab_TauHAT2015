@@ -115,7 +115,7 @@ BSM_Analysis::BSM_Analysis(TFile* theFile, TDirectory *cdDir[], int nDir, char* 
               ProbeTau_TL_vec.SetPtEtaPhiE(Tau_pt->at(t), Tau_eta->at(t), Tau_phi->at(t), Tau_energy->at(t));
               double DeltaR_electron_tau = TagElectron_TL_vec.DeltaR(ProbeTau_TL_vec);
               double charge_product = (patElectron_charge->at(j))*(Tau_charge->at(t));
-              if ((DeltaR_electron_tau > 0.5) && (charge_product < 0) && (Tau_pt->at(t) > 20) && (abs(Tau_eta->at(t)) > 2.3)){
+              if ((DeltaR_electron_tau > 0.5) && (charge_product < 0) && (Tau_pt->at(t) > 20) && (abs(Tau_eta->at(t)) < 2.3)){
               if( Tau_decayModeFinding->at(t) == 1){
                 pass_tau_id[1] = 1;
               }
