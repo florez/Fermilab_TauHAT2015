@@ -74,7 +74,6 @@ void makeEfficiencyPlots(){
         }  
    }
  
-  
  file->cd(dir_den.c_str());
  TIter nextKey_den (gDirectory->GetListOfKeys()); 
  TKey* key_den;
@@ -82,16 +81,16 @@ void makeEfficiencyPlots(){
  
  while ( (key_den = (TKey*) nextKey_den()) )  // Need double parentheses 
    {
-    TObject* obj = key_num->ReadObj();
-     TH1* histoObj = (TH1*) obj;
-     if ( (histoObj->GetYaxis()->GetNbins() == 1) )
+    TObject* obj_den = key_den->ReadObj();
+     TH1* histoObj_den = (TH1*) obj_den;
+     if ( (histoObj_den->GetYaxis()->GetNbins() == 1) )
        {
-          h_den = (TH1F*)histoObj;
+          h_den = (TH1F*)histoObj_den;
           if (h_den->GetName() == histoName){h_den->Rebin(rebin); break;}
         }
      
   }
-
+  
  // When you run out of statistics in the high mass or high pT tails
  // you might want to dump the events in falling in those regions, into 
  // one large bin. The lines below, show you how to do it. If you set the 
